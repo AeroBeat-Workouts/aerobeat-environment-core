@@ -1,0 +1,17 @@
+{
+  "$schema": "https://chickensoft.games/schemas/addons.schema.json",
+  "addons": {
+    // Environment-template bootstrap pins the shared asset/resource contract.
+    "aerobeat-asset-core": {
+      "url": "git@github.com:AeroBeat-Workouts/aerobeat-asset-core.git",
+      "checkout": "main",
+      "subfolder": "/"
+    },
+    // GUT drives the repo-local test suite inside the hidden testbed/workbench.
+    "gut": {
+      "url": "git@github.com:bitwes/Gut.git",
+      "checkout": "main",
+      "subfolder": "/addons/gut"
+    }
+  }
+}
