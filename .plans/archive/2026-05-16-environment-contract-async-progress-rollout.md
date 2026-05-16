@@ -171,14 +171,14 @@ Because this work changes the shared contract and at least one fulfillment imple
 **Prompt:** In repo `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-loader`, claim the assigned bead only if Task 1 or Task 2 shows the loader needs compatibility updates for the expanded async/progress contract. Keep scope narrow and focused on API coherence rather than unrelated refactors.
 
 **Folders Created/Deleted/Modified:**
-- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-loader/` if needed
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-core/.plans/`
 
 **Files Created/Deleted/Modified:**
-- Only if Task 1/2 prove they are needed
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-core/.plans/2026-05-16-environment-contract-async-progress-rollout.md`
 
-**Status:** ⏳ Pending
+**Status:** ✅ Complete
 
-**Results:** Pending.
+**Results:** Inspected `aerobeat-environment-loader` against the landed additive async contract and concluded no loader code change is required for this rollout slice. The loader remains a sync-first consumer/orchestrator: it does not implement the new `AeroEnvironmentFulfillment.begin_fulfill()` surface, and nothing in the core or gaussian-splat changes made that mandatory. Its existing public API is still dictionary-based signals plus terminal success/failure events, and it already constructs progress payloads through `AeroEnvironmentProgress.to_dict()`, so the expanded `state` / `phase` / `sequence` / `indeterminate` fields arrive additively without breaking current callers. I checked the main coherence risk: those new fields are not richly populated by loader yet, but that is an optional future cleanup rather than a compatibility blocker for this slice because loader is not the async provider being rolled out here and its authoritative completion surface is still `environment_load_succeeded` / `environment_load_failed`. Therefore this task closes as a documented no-op: no repo-local edits, no validation run needed, and QA can proceed using the current loader behavior plus the new async contract in core/gaussian-splat.
 
 ---
 
@@ -191,14 +191,24 @@ Because this work changes the shared contract and at least one fulfillment imple
 **Prompt:** Across the touched repos, claim the assigned bead and verify the async/progress/state contract path as far as current repo-local validation and the known gaussian-splat bug allow. Clearly separate successful plumbing validation from anything still blocked by the external splat bug.
 
 **Folders Created/Deleted/Modified:**
-- Validation only expected
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-core/.plans/`
 
 **Files Created/Deleted/Modified:**
-- Plan updates only unless minimal QA-fix follow-ups are absolutely required
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-core/.plans/2026-05-16-environment-contract-async-progress-rollout.md`
 
-**Status:** ⏳ Pending
+**Status:** ✅ Complete
 
-**Results:** Pending.
+**Results:** QA passed for the async/progress/state **contract plumbing** path, with the renderer/runtime bug boundary kept explicit. I claimed the bead with `bd update aerobeat-environment-core-1r7 --status in_progress --json`, reviewed the coordination plan plus recent commits (`0f5c86b` in core, `3c1fb2f` in gaussian-splat, loader still unchanged since `4542fd7`), then ran the highest-fidelity repo-local validation available in the two touched code repos:
+- Core: `cd /home/derrick/Documents/projects/aerobeat/aerobeat-environment-core && godotenv addons install && godot --headless --path .testbed --import && godot --headless --path .testbed --script addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit` → **13/13 passing**.
+- Gaussian splat: `cd /home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat && godot --headless --path .testbed --script addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit` → **15/15 passing**.
+
+**Core verification:** `src/contracts/data_types/environment_operation.gd` now provides the typed async lifecycle object with `started`, `progressed`, `succeeded`, `failed`, and `finished` signals plus terminal state tracking. `src/contracts/data_types/environment_progress.gd` now carries additive `state`, `phase`, `sequence`, and `indeterminate` fields, and `src/contracts/globals/aero_environment_constants.gd` defines the shared lifecycle/status vocabulary. `src/contracts/interfaces/environment_fulfillment.gd` adds default `begin_fulfill()` sync-wrapping without breaking `fulfill()`. Test coverage is real, not just structural: core GUT cases cover operation lifecycle signals/state, cancel/failure paths, and default `begin_fulfill()` wrapping of sync success/failure into finished operations.
+
+**Gaussian-splat verification:** `src/AeroGaussianSplatEnvironmentFulfillment.gd` keeps sync `fulfill()` intact and adds real `begin_fulfill()` async plumbing on top of the lower runtime. It creates `AeroEnvironmentOperation`, translates `background_load_started` / `background_load_progressed` / `background_load_finished` into typed `AeroEnvironmentProgress` updates, maps runtime phases into contract `status` values while preserving splat-specific `phase`, pushes ordered `sequence` values, applies config after background load completion, optionally configures `WorldEnvironment`, and resolves typed `AeroEnvironmentResult` / `AeroEnvironmentError`. Repo-local tests confirm async success completion, typed terminal validation failures, and contract-vocabulary progress translation (`state=running`, `status=decoding`, `phase=decoding`, preserved `sequence` and message text).
+
+**Loader no-op verification:** I inspected `aerobeat-environment-loader` rather than forcing unrelated code changes. The loader still acts as a sync-first orchestrator with dictionary signals (`environment_load_progress`, `environment_load_succeeded`, `environment_load_failed`) and does not implement or require `begin_fulfill()` / `supports_async()`. Its `_emit_progress()` path instantiates `AeroEnvironmentProgress` and emits `to_dict()`, so the newly additive progress fields can flow through without requiring loader surgery. README scope also explicitly says specialized fulfillment implementations belong in sibling repos and that this repo only consumes the shared core contract. That makes Task 4’s documented no-op conclusion coherent for this rollout slice.
+
+**Bug-boundary verification / caveat:** the plan and gaussian-splat README both now keep the critical boundary honest: async plumbing is validated, but stable visible splat rendering/compositor behavior is **not** claimed solved. The README states the async path "do[es] **not** overclaim the known renderer/compositor bug as solved," and the QA evidence here is limited to repo-local contract tests plus headless/testbed validation. This is enough to pass Task 5 for contract rollout QA, but not enough to claim the separate runtime/render bug is fixed.
 
 ---
 
@@ -211,30 +221,42 @@ Because this work changes the shared contract and at least one fulfillment imple
 **Prompt:** Across the touched repos, claim the assigned bead and independently audit whether the shared environment contract now genuinely supports async fulfillment, state updates, and progress reporting, while documenting any remaining blocker that is truly caused by the separate gaussian-splat runtime bug.
 
 **Folders Created/Deleted/Modified:**
-- Audit only expected
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-core/.plans/`
 
 **Files Created/Deleted/Modified:**
-- Plan updates only unless an audit retry is required
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-core/.plans/2026-05-16-environment-contract-async-progress-rollout.md`
 
-**Status:** ⏳ Pending
+**Status:** ✅ Complete
 
-**Results:** Pending.
+**Results:** Audit passed for the **async/progress contract rollout slice**, with the renderer/runtime bug boundary kept honest. I independently re-ran the key repo-local validations instead of trusting prior summaries: core `godot --headless --path .testbed --script addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit` passed **13/13**, and gaussian-splat passed **15/15**. I also spot-checked the landed code and commit surfaces directly: core commit `0f5c86b` really adds a new additive async contract surface (`AeroEnvironmentOperation`, expanded `AeroEnvironmentProgress`, lifecycle/status constants, and default `begin_fulfill()` sync wrapping), while gaussian-splat commit `3c1fb2f` really adds a contract-facing async adapter on top of the lower runtime instead of collapsing the lower fulfillment package boundary.
+
+**Core truth check:** `aerobeat-environment-core` now genuinely owns the shared async contract surface. `src/contracts/data_types/environment_operation.gd` defines the operation lifecycle object with typed signals and terminal/result/error tracking; `src/contracts/data_types/environment_progress.gd` additively carries `state`, `phase`, `sequence`, and `indeterminate`; `src/contracts/interfaces/environment_fulfillment.gd` exposes `begin_fulfill()` plus default sync wrapping; and `README.md` explicitly describes core as the owner of async operation handles rather than pushing that contract truth back into loader or splat. The contract remains additive rather than destructive, so the prior sync-first surface still works.
+
+**Gaussian-splat truth check:** `src/AeroGaussianSplatEnvironmentFulfillment.gd` keeps synchronous `fulfill()` intact, adds real `begin_fulfill()` async behavior, and translates lower-runtime `background_load_started` / `background_load_progressed` / `background_load_finished` dictionaries into typed contract progress snapshots with shared `status` values and splat-specific `phase`. It tracks active operations, sequences progress updates, applies config after background completion, and only then resolves typed terminal result/error state. The lower fulfillment/runtime package still owns the actual decode/load/build/compositor runtime surface; this repo is adapting it through the shared contract, not inlining or replacing it. `.testbed/addons.jsonc` still installs the lower package separately, which matches the intended boundary.
+
+**Loader truth check:** `aerobeat-environment-loader` did not need code changes for this slice, and the git history confirms none landed after `4542fd7`. Its `src/AeroToolManager.gd` still behaves as a sync-first dictionary-signal orchestrator, and its `_emit_progress()` path still constructs `AeroEnvironmentProgress` then emits `to_dict()`. Because the new core fields are additive and loader is not the async provider being rolled out, leaving loader untouched is coherent rather than a missed migration.
+
+**Bug-boundary truth check:** the rollout should be considered **complete for contract plumbing** but **not evidence that stable visible gaussian-splat rendering is fixed**. Gaussian-splat README/test coverage explicitly keeps renderer truth locked: unsupported backends stay unsupported, RenderingDevice paths remain only `experimental`, and Forward+ / Vulkan compositor crashes remain called out as still reproduced. That cleanly separates the landed async contract rollout from the still-blocked visible render/runtime validation problem.
+
+**Audit conclusion:** **Complete** for the requested rollout slice. Follow-up debt remains only in future consumer adoption / richer loader async usage and in the separate visible renderer/compositor bug, not in the shared async contract plumbing itself.
 
 ---
 
 ## Final Results
 
-**Status:** ⏳ Pending
+**Status:** ✅ Complete
 
-**What We Built:** Pending.
+**What We Built:** The shared environment contract now owns a real additive async fulfillment surface, gaussian-splat now exposes that async/progress/state lifecycle through the shared contract without collapsing its lower runtime boundary, and loader compatibility for this slice was confirmed as a deliberate no-op. The rollout is complete for contract plumbing and repo-local validation, while the separate visible render/compositor bug remains explicitly out of scope and unresolved.
 
-**Reference Check:** Pending.
+**Reference Check:** `REF-01` stays consistent with the earlier contract-pivot direction by keeping core as the shared contract owner and specialized repos as consumers/adapters. `REF-02` now genuinely contains the async operation contract surface and tests. `REF-03` now genuinely adapts lower-runtime async progress into the shared contract while preserving the lower fulfillment package boundary and truth-locking renderer status. `REF-04` remains compatible without new code changes for this rollout slice.
 
 **Commits:**
-- Pending
+- `0f5c86b` - Add async environment operation contract
+- `3c1fb2f` - Add async gaussian splat environment fulfillment
+- `afd430f` - Update async progress rollout plan for gaussian splat
 
-**Lessons Learned:** Pending.
+**Lessons Learned:** Additive contract growth worked better than trying to replace the sync surface. Keeping `status` generic and `phase` implementation-specific preserved cross-kind coherence without flattening splat detail. Most importantly, separating validated async plumbing from the still-unfixed visible renderer/compositor bug prevented this rollout from overclaiming success.
 
 ---
 
-*Completed on Pending*
+*Completed on 2026-05-16*
