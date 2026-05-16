@@ -147,13 +147,18 @@ Because this work changes the shared contract and at least one fulfillment imple
 
 **Folders Created/Deleted/Modified:**
 - `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat/`
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat/src/`
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat/.testbed/tests/`
 
 **Files Created/Deleted/Modified:**
-- Adapter/test/doc/manifest files to be determined by Task 1
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat/src/AeroGaussianSplatEnvironmentFulfillment.gd`
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat/src/AeroToolManager.gd`
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat/.testbed/tests/test_AeroToolManager.gd`
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat/README.md`
 
-**Status:** ⏳ Pending
+**Status:** ✅ Complete
 
-**Results:** Pending.
+**Results:** Added a real async contract adapter on top of the existing sync splat fulfillment surface without touching the lower fulfillment package boundary. `AeroGaussianSplatEnvironmentFulfillment` now keeps sync `fulfill()` intact and adds `begin_fulfill(request) -> AeroEnvironmentOperation`, translating lower-runtime `background_load_started` / `background_load_progressed` / `background_load_finished` dictionaries into typed `AeroEnvironmentProgress` updates with shared cross-kind `status` values and splat-specific `phase` values. The adapter now tracks active operations, emits queued/running/final progress snapshots, applies config after background decode/build completes, optionally configures the `WorldEnvironment`, and resolves typed `AeroEnvironmentResult` / `AeroEnvironmentError` terminal states. `AeroToolManager` now exposes matching `begin_fulfill_environment_request()`, `begin_fulfill()`, and `supports_async()` wrapper entrypoints. README usage/examples were updated to document the new async contract path while explicitly keeping the known visible-render/runtime bug boundary honest. Added repo-local tests for async operation success, wrapped validation failures, and progress/status/phase translation. Validation: `godot --headless --path .testbed --script addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit` (15/15 passing). Implementation commit: `3c1fb2f` (`Add async gaussian splat environment fulfillment`).
 
 ---
 
