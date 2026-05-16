@@ -14,8 +14,9 @@ the existing environment-family package role and the asset-side dependency direc
 
 ## What this repo owns now
 
-- canonical environment kinds and status vocabulary
+- canonical environment kinds, lifecycle states, and status vocabulary
 - typed request/result/error/progress/config contracts
+- typed async operation handles for fulfillment lifecycle and progress reporting
 - narrow fulfillment/provider base interfaces for kind handlers
 - reusable request normalization and environment config helpers
 - room for package-local internal environment assets when a concrete environment repo needs them
@@ -25,8 +26,8 @@ the existing environment-family package role and the asset-side dependency direc
 Current shared contract surface lives under:
 
 - `src/contracts/globals/` - constants and shared vocabulary
-- `src/contracts/data_types/` - typed DTO-style contract resources/classes
-- `src/contracts/interfaces/` - fulfillment/provider base interfaces
+- `src/contracts/data_types/` - typed DTO-style contract resources/classes plus async operation handles
+- `src/contracts/interfaces/` - fulfillment/provider base interfaces, including sync-to-async wrapper entrypoints
 - `src/contracts/validators/` - request normalization and config helpers
 
 The initial contract slice is intentionally narrow. It is designed to unblock downstream migration

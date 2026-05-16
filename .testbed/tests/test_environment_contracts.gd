@@ -5,11 +5,14 @@ const REQUEST_SCRIPT := "../src/contracts/data_types/environment_request.gd"
 const RESULT_SCRIPT := "../src/contracts/data_types/environment_result.gd"
 const ERROR_SCRIPT := "../src/contracts/data_types/environment_error.gd"
 const PROGRESS_SCRIPT := "../src/contracts/data_types/environment_progress.gd"
+const OPERATION_SCRIPT := "../src/contracts/data_types/environment_operation.gd"
 const CONFIG_SCRIPT := "../src/contracts/data_types/environment_config.gd"
 const FULFILLMENT_SCRIPT := "../src/contracts/interfaces/environment_fulfillment.gd"
 const KIND_HANDLER_SCRIPT := "../src/contracts/interfaces/environment_kind_handler.gd"
 const REQUEST_VALIDATOR_SCRIPT := "../src/contracts/validators/environment_request_validator.gd"
 const CONFIG_HELPER_SCRIPT := "../src/contracts/validators/environment_config_helper.gd"
+const FAKE_SUCCESS_FULFILLMENT_SCRIPT := "res://tests/support/fake_success_fulfillment.gd"
+const FAKE_FAILURE_FULFILLMENT_SCRIPT := "res://tests/support/fake_failure_fulfillment.gd"
 
 func _load_repo_script(relative_path: String) -> Script:
 	var absolute_path := ProjectSettings.globalize_path("res://%s" % relative_path)
@@ -25,6 +28,7 @@ func test_contract_scripts_exist_and_load() -> void:
 		RESULT_SCRIPT,
 		ERROR_SCRIPT,
 		PROGRESS_SCRIPT,
+		OPERATION_SCRIPT,
 		CONFIG_SCRIPT,
 		FULFILLMENT_SCRIPT,
 		KIND_HANDLER_SCRIPT,
@@ -87,7 +91,7 @@ func test_config_helper_applies_transform_to_node3d() -> void:
 	assert_almost_eq(target.rotation_degrees.y, 20.0, 0.001)
 	assert_almost_eq(target.rotation_degrees.z, 30.0, 0.001)
 	assert_eq(target.scale, Vector3(2, 3, 4))
-	target.queue_free()
+	target.free()
 
 func test_data_type_round_trip_and_kind_handler_behavior() -> void:
 	var request_script := _load_repo_script(REQUEST_SCRIPT)
@@ -127,10 +131,18 @@ func test_data_type_round_trip_and_kind_handler_behavior() -> void:
 		"request_id": request.request_id,
 		"kind": request.kind,
 		"asset_path": request.asset_path,
+		"state": " RUNNING ",
 		"status": "ready",
+		"phase": " Building ",
 		"progress": 4.0,
+		"sequence": -3,
+		"indeterminate": true,
 	})
+	assert_eq(progress.state, "running")
+	assert_eq(progress.phase, "building")
 	assert_eq(progress.progress, 1.0)
+	assert_eq(progress.sequence, 0)
+	assert_true(progress.indeterminate)
 
 	var config = config_script.new({
 		"position": [4, 5, 6],
@@ -140,3 +152,131 @@ func test_data_type_round_trip_and_kind_handler_behavior() -> void:
 	var handler = kind_handler_script.new("splat")
 	assert_true(handler.supports_kind(" SPLAT "), "Kind handler should normalize kind lookups")
 	assert_false(handler.supports_kind("glb"), "Kind handler should reject other kinds")
+
+func test_operation_lifecycle_emits_typed_signals_and_tracks_terminal_state() -> void:
+	var request_script := _load_repo_script(REQUEST_SCRIPT)
+	var operation_script := _load_repo_script(OPERATION_SCRIPT)
+	var request = request_script.new({
+		"request_id": "req-op-success",
+		"kind": "splat",
+		"asset_path": "/tmp/hero.compressed.ply",
+	})
+	var operation = operation_script.new(request)
+	var events: Array[String] = []
+	var sequences: Array[int] = []
+
+	operation.started.connect(func(progress):
+		events.append("started")
+		sequences.append(progress.sequence)
+	)
+	operation.progressed.connect(func(progress):
+		events.append("progressed")
+		sequences.append(progress.sequence)
+	)
+	operation.succeeded.connect(func(_result):
+		events.append("succeeded")
+	)
+	operation.finished.connect(func(finished_operation):
+		events.append("finished")
+		assert_true(finished_operation.is_terminal())
+	)
+
+	var started = operation.mark_started({
+		"status": "loading",
+		"phase": "reading",
+		"indeterminate": true,
+	})
+	var progressed = operation.push_progress({
+		"status": "decoding",
+		"phase": "building",
+		"progress": 0.5,
+	})
+	var result = operation.succeed({
+		"request_id": request.request_id,
+		"kind": request.kind,
+		"asset_path": request.asset_path,
+		"format": ".compressed.ply",
+	})
+
+	assert_eq(started.state, "running")
+	assert_eq(progressed.status, "decoding")
+	assert_eq(operation.state, "succeeded")
+	assert_eq(operation.latest_progress.state, "succeeded")
+	assert_eq(operation.latest_progress.status, "ready")
+	assert_eq(operation.latest_progress.progress, 1.0)
+	assert_eq(result.format, ".compressed.ply")
+	assert_eq(events, ["started", "progressed", "succeeded", "finished"])
+	assert_eq(sequences, [1, 2])
+
+func test_operation_cancel_and_failure_paths_are_typed() -> void:
+	var request_script := _load_repo_script(REQUEST_SCRIPT)
+	var operation_script := _load_repo_script(OPERATION_SCRIPT)
+	var request = request_script.new({
+		"request_id": "req-op-fail",
+		"kind": "glb",
+		"asset_path": "/tmp/fail.glb",
+	})
+	var failed_events: Array[String] = []
+	var failed_operation = operation_script.new(request)
+	failed_operation.failed.connect(func(error):
+		failed_events.append(error.error_code)
+	)
+	failed_operation.finished.connect(func(_operation):
+		failed_events.append("finished")
+	)
+
+	failed_operation.mark_started({"status": "loading"})
+	var error = failed_operation.fail({
+		"request_id": request.request_id,
+		"kind": request.kind,
+		"asset_path": request.asset_path,
+		"error_code": "loader_failed",
+		"message": "nope",
+	})
+	assert_eq(error.error_code, "loader_failed")
+	assert_eq(failed_operation.latest_progress.state, "failed")
+	assert_eq(failed_operation.latest_progress.status, "failed")
+	assert_eq(failed_events, ["loader_failed", "finished"])
+
+	var cancelled_operation = operation_script.new(request)
+	cancelled_operation.mark_started({"status": "loading"})
+	var cancelled_progress = cancelled_operation.cancel("user cancelled")
+	assert_eq(cancelled_operation.state, "cancelled")
+	assert_eq(cancelled_progress.status, "cancelled")
+	assert_eq(cancelled_progress.message, "user cancelled")
+	assert_true(cancelled_operation.is_terminal())
+
+func test_begin_fulfill_wraps_sync_success_into_finished_operation() -> void:
+	var request_script := _load_repo_script(REQUEST_SCRIPT)
+	var request = request_script.new({
+		"request_id": "req-sync-success",
+		"kind": "splat",
+		"asset_path": "/tmp/success.compressed.ply",
+	})
+	var fulfillment = load(FAKE_SUCCESS_FULFILLMENT_SCRIPT).new()
+	var operation = fulfillment.begin_fulfill(request)
+
+	assert_false(fulfillment.supports_async())
+	assert_true(operation.is_terminal())
+	assert_eq(operation.state, "succeeded")
+	assert_eq(operation.latest_progress.state, "succeeded")
+	assert_eq(operation.latest_progress.status, "ready")
+	assert_eq(operation.result.details.get("wrapped", false), true)
+	assert_eq(operation.error, null)
+
+func test_begin_fulfill_wraps_sync_failure_into_finished_operation() -> void:
+	var request_script := _load_repo_script(REQUEST_SCRIPT)
+	var request = request_script.new({
+		"request_id": "req-sync-fail",
+		"kind": "glb",
+		"asset_path": "/tmp/fail.glb",
+	})
+	var fulfillment = load(FAKE_FAILURE_FULFILLMENT_SCRIPT).new()
+	var operation = fulfillment.begin_fulfill(request)
+
+	assert_true(operation.is_terminal())
+	assert_eq(operation.state, "failed")
+	assert_eq(operation.latest_progress.state, "failed")
+	assert_eq(operation.latest_progress.status, "failed")
+	assert_eq(operation.error.message, "sync boom")
+	assert_eq(operation.result, null)

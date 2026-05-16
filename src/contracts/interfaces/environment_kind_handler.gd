@@ -1,8 +1,6 @@
 class_name AeroEnvironmentKindHandler
 extends "environment_fulfillment.gd"
 
-const AeroEnvironmentConstants = preload("../globals/aero_environment_constants.gd")
-
 var supported_kind: String = ""
 
 func _init(kind: String = "") -> void:
