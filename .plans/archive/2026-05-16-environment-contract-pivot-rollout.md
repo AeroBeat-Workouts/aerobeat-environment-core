@@ -143,12 +143,16 @@ This recommendation is strong enough to unblock implementation. It gives a concr
 - `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-loader/`
 
 **Files Created/Deleted/Modified:**
-- Loader contract-consumer files to be determined by Task 1
-- Tests/README/manifest files as needed
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-loader/src/AeroToolManager.gd`
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-loader/.testbed/tests/test_AeroToolManager.gd`
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-loader/.testbed/tests/test_example.gd`
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-loader/.testbed/addons.jsonc`
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-loader/README.md`
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-loader/plugin.cfg`
 
-**Status:** ⏳ Pending
+**Status:** ✅ Complete
 
-**Results:** Pending.
+**Results:** Migrated `aerobeat-environment-loader` from being the de facto environment contract owner to being a consumer/orchestrator of `aerobeat-environment-core`. `src/AeroToolManager.gd` now preloads the core-owned constants, DTOs, validators, and config helper from `res://addons/aerobeat-environment-core/src/contracts/...`, keeps the existing dictionary-based public entrypoint and signal behavior, and uses compatibility shims so current callers can continue using `AeroToolManager` constants and request/result/error/progress dictionaries. Image/video/GLB built-in fulfillment and the workout YAML bridge remained in loader as required. The dev/test manifest was rewired from the stale `aerobeat-tool-core` baseline to `aerobeat-environment-core`, and README/plugin metadata were tightened so the repo now describes itself as the environment loader/orchestrator package instead of the generic tool template. Repo-local tests were expanded to prove contract coherence by comparing loader constants/request normalization against the core package and by round-tripping emitted request/result/progress/error payloads through core-owned contract classes. Validation run in the loader repo: `cd .testbed && godotenv addons install`; `godot --headless --path .testbed --import`; `godot --headless --path .testbed --script addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit` (12/12 passing). Commit pushed to `main`: `4542fd7` (`Migrate loader to environment core contract`).
 
 ---
 
@@ -164,12 +168,22 @@ This recommendation is strong enough to unblock implementation. It gives a concr
 - `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat/`
 
 **Files Created/Deleted/Modified:**
-- Gaussian-splat fulfillment/adapter files to be determined by Task 1
-- Tests/README/manifest files as needed
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat/src/AeroGaussianSplatEnvironmentFulfillment.gd`
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat/src/AeroToolManager.gd`
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat/.testbed/addons.jsonc`
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat/.testbed/tests/test_AeroToolManager.gd`
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat/README.md`
+- `/home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat/plugin.cfg`
 
-**Status:** ⏳ Pending
+**Status:** ✅ Complete
 
-**Results:** Pending.
+**Results:** Migrated `aerobeat-environment-gaussian-splat` so the repo-root wrapper now adapts into `aerobeat-environment-core` while the real decode/load/build/background/compositor logic remains in the lower package boundary under `addons/aerobeat-environment-gaussian-splat-fulfillment/`. Added `src/AeroGaussianSplatEnvironmentFulfillment.gd` as the contract-facing adapter by extending `AeroEnvironmentKindHandler` from the new core contract and delegating actual `.compressed.ply` fulfillment to `AeroGaussianSplatManager` / the lower runtime. `src/AeroToolManager.gd` now exposes `get_environment_fulfillment()`, `supports_environment_kind()`, `fulfill_environment_request()`, and a `fulfill()` alias without breaking the existing standalone wrapper methods.
+
+**Interface decision recorded:** because `AeroEnvironmentFulfillment.fulfill()` is intentionally narrow and does not yet define an async/progress transport, the splat contract adapter uses the synchronous create-node path for contract fulfillment. It returns a typed `AeroEnvironmentResult` on success or `AeroEnvironmentError` on failure, with the created `node`, decoded `resource`, `point_count`, `aabb`, applied config payload, and compositor-configuration outcome stored in `result.details`. Existing background-load APIs stay on the wrapper/runtime surface for consumers that need the older async behavior.
+
+Updated the hidden testbed manifest to install `aerobeat-environment-core` locally so the wrapper exercises the real contract path, and expanded repo-local coverage to prove: typed request -> typed result fulfillment, config application through the shared core helper, optional `WorldEnvironment` compositor configuration, and rejection of non-contract `.ply` assets even though the standalone wrapper still supports them for compatibility. README/plugin metadata were updated just enough to describe the new contract-facing role and dependency.
+
+Validation run: `./scripts/restore-testbed-addons.sh`; `godot --headless --path .testbed --import`; `godot --headless --path .testbed --script addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit` (12/12 passing). Import emitted a non-failing Godot `ObjectDB instances leaked at exit` warning, but the install/import/test pipeline completed successfully. Implementation commit: `47b713e` (`Adapt gaussian splat to environment core contract`).
 
 ---
 
@@ -187,9 +201,38 @@ This recommendation is strong enough to unblock implementation. It gives a concr
 **Files Created/Deleted/Modified:**
 - Plan updates and any small QA-fix follow-ups if absolutely required
 
-**Status:** ⏳ Pending
+**Status:** ✅ Complete
 
-**Results:** Pending.
+**Results:** QA pass. I re-ran the highest-fidelity repo-local validation available in each touched repo and spot-checked the public/runtime surfaces instead of trusting only the coder handoff.
+
+**Commands run:**
+- `cd /home/derrick/Documents/projects/aerobeat/aerobeat-environment-core && bd update aerobeat-environment-core-eav --status in_progress --json`
+- `cd /home/derrick/Documents/projects/aerobeat/aerobeat-environment-core && git log --oneline -n 8`
+- `cd /home/derrick/Documents/projects/aerobeat/aerobeat-environment-loader && git log --oneline -n 8`
+- `cd /home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat && git log --oneline -n 8`
+- `cd /home/derrick/Documents/projects/aerobeat/aerobeat-environment-core && find src/contracts -maxdepth 3 -type f | sort`
+- `cd /home/derrick/Documents/projects/aerobeat/aerobeat-environment-core && grep -RIn "contracts\|EnvironmentRequest\|EnvironmentResult\|EnvironmentRequestValidator\|AeroEnvironmentConstants" .testbed/tests`
+- `cd /home/derrick/Documents/projects/aerobeat/aerobeat-environment-loader && grep -RIn "aerobeat-environment-core\|EnvironmentRequest\|EnvironmentResult\|EnvironmentRequestValidator\|AeroEnvironmentConstants\|AeroEnvironmentConfigHelper" src .testbed/addons.jsonc README.md plugin.cfg`
+- `cd /home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat && grep -RIn "AeroEnvironmentKindHandler\|aerobeat-environment-core\|get_environment_fulfillment\|supports_environment_kind\|fulfill_environment_request\|AeroGaussianSplatEnvironmentFulfillment" src .testbed/addons.jsonc README.md plugin.cfg`
+- `cd /home/derrick/Documents/projects/aerobeat/aerobeat-environment-core && godotenv addons install && godot --headless --path .testbed --import && godot --headless --path .testbed --script addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit`
+- `cd /home/derrick/Documents/projects/aerobeat/aerobeat-environment-loader && cd .testbed && godotenv addons install && cd .. && godot --headless --path .testbed --import && godot --headless --path .testbed --script addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit`
+- `cd /home/derrick/Documents/projects/aerobeat/aerobeat-environment-gaussian-splat && ./scripts/restore-testbed-addons.sh && godot --headless --path .testbed --import && godot --headless --path .testbed --script addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit`
+
+**Evidence / checks performed:**
+- **Core contract files exist and are test-covered:** `src/contracts/` now contains the shared constants, DTOs, interfaces, and validators (`data_types/`, `globals/`, `interfaces/`, `validators/`). `.testbed/tests/test_environment_contracts.gd` directly references and exercises those contract scripts, and the core testbed run passed **9/9 tests**.
+- **Loader depends on and consumes core coherently:** `src/AeroToolManager.gd` preloads the core-owned constants/result/error/progress/validator/config-helper scripts from `res://addons/aerobeat-environment-core/src/contracts/...`; `.testbed/addons.jsonc` now installs `aerobeat-environment-core`; README/plugin metadata describe loader as the orchestrator/consumer. Loader testbed run passed **12/12 tests**, including contract-coherence checks named `test_loader_constants_match_environment_core_contract` and `test_normalize_request_matches_environment_core_validator`.
+- **Gaussian splat fulfills the core contract without collapsing the lower boundary:** repo-root adapter `src/AeroGaussianSplatEnvironmentFulfillment.gd` extends the core `environment_kind_handler.gd` contract and preloads core request/result/error/validator/config-helper types, while the lower runtime remains under `addons/aerobeat-environment-gaussian-splat-fulfillment/runtime/`. Wrapper `src/AeroToolManager.gd` still exposes the compatibility/public façade plus the new contract-facing `get_environment_fulfillment()`, `supports_environment_kind()`, `fulfill_environment_request()`, and `fulfill()` methods. Gaussian-splat testbed run passed **12/12 tests**.
+- **Public compatibility surfaces still exist:** loader still exports the existing signal surface (`environment_load_started`, `environment_load_progress`, `environment_load_succeeded`, `environment_load_failed`, `environment_cleared`) and compatibility constants on `AeroToolManager`; gaussian-splat still exports the wrapper manager methods for direct load/background-load workflows while adding the contract-facing fulfillment adapter surface.
+
+**Recent commits inspected:**
+- `aerobeat-environment-core`: `b635863` (`Add environment core contract boundary`)
+- `aerobeat-environment-loader`: `4542fd7` (`Migrate loader to environment core contract`)
+- `aerobeat-environment-gaussian-splat`: `47b713e` (`Adapt gaussian splat to environment core contract`)
+
+**Caveats:**
+- Loader testbed import emitted non-failing warnings that the vendored `aerobeat-environment-core` addon inside `.testbed/addons/` was missing `.uid` files and Godot re-created them from cache. This did **not** fail import or GUT, but it is worth tracking if the testbed-addon restore/install workflow should preserve `.uid` metadata more cleanly.
+- Core and gaussian-splat imports emitted non-failing `ObjectDB instances leaked at exit` warnings during headless runs. The suites still completed successfully, so I am treating them as pre-existing/non-blocking for this QA slice.
+- I did not find a cross-repo single-project integration harness beyond the per-repo hidden testbeds, so this QA pass is the highest-fidelity repo-local verification available today rather than a unified multi-addon consumer app.
 
 ---
 
@@ -207,25 +250,46 @@ This recommendation is strong enough to unblock implementation. It gives a concr
 **Files Created/Deleted/Modified:**
 - Plan updates only unless the audit requires a clearly documented retry
 
-**Status:** ⏳ Pending
+**Status:** ✅ Complete
 
-**Results:** Pending.
+**Results:** Independent audit passed. I spot-checked the actual landed code, manifests, tests, and recent commits across all three repos instead of trusting the prior summaries.
+
+**What I verified directly:**
+- **`aerobeat-environment-core` now owns the shared contract boundary.** The repo contains a real `src/contracts/` subtree with shared constants, DTO-style request/result/error/progress/config types, fulfillment interfaces, validators, and config helpers. Core does not pull runtime dependencies back from loader or gaussian-splat; its hidden testbed manifest stays pinned only to `aerobeat-asset-core` plus `gut`, which keeps the dependency direction correct.
+- **`aerobeat-environment-loader` now consumes core instead of defining the contract itself.** `src/AeroToolManager.gd` preloads the core contract scripts from `res://addons/aerobeat-environment-core/src/contracts/...`, aliases the core constants back onto the existing public `AeroToolManager` surface, and preserves the existing signal-based compatibility API (`environment_load_started`, `environment_load_progress`, `environment_load_succeeded`, `environment_load_failed`, `environment_cleared`). The loader hidden testbed manifest now installs `aerobeat-environment-core`, and repo-local tests explicitly compare loader behavior against the core validator/constants.
+- **`aerobeat-environment-gaussian-splat` fulfills the core contract without collapsing its lower fulfillment boundary.** The new repo-root adapter `src/AeroGaussianSplatEnvironmentFulfillment.gd` extends the core `environment_kind_handler.gd` contract and returns typed core result/error objects, while the actual reusable runtime remains in `addons/aerobeat-environment-gaussian-splat-fulfillment/runtime/`. The wrapper `src/AeroToolManager.gd` adds contract-facing fulfillment accessors but still preserves the direct/background lower-runtime compatibility surface.
+- **Plan evidence and code line up coherently.** The landed commits match the claimed repo roles: `b635863` in core, `4542fd7` in loader, and `47b713e` in gaussian-splat. The changed files in each repo match the architecture story told by Tasks 2–5, and the README/plugin/manifests in each repo now describe the same boundary split the code implements.
+
+**Independent validation rerun:**
+- `aerobeat-environment-core`: `godot --headless --path .testbed --script addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit` → **9/9 passing**
+- `aerobeat-environment-loader`: same command in repo root → **12/12 passing**
+- `aerobeat-environment-gaussian-splat`: same command in repo root → **12/12 passing**
+
+**Audit conclusion:** **Complete / passes audit.** The architecture pivot actually landed: the shared environment contract authority moved into `aerobeat-environment-core`, the loader now consumes that authority while preserving its compatibility surface, and gaussian-splat now fulfills the core contract through a wrapper adapter while keeping the lower fulfillment package boundary intact.
+
+**Non-blocking follow-up debt / caveats:**
+- There is still no single cross-repo integration harness that installs all three addons into one consumer project; current evidence is coherent but assembled from strong per-repo hidden testbeds rather than one unified end-to-end sandbox.
+- The contract-facing gaussian-splat adapter currently uses the synchronous fulfillment path; the richer background/progress runtime remains available on the wrapper/runtime surface instead of being modeled by the shared contract yet.
+- Headless Godot runs still emit some non-failing warnings/orphan/leak noise, but they did not prevent the suites from passing and do not contradict the pivot itself.
 
 ---
 
 ## Final Results
 
-**Status:** ⏳ Pending
+**Status:** ✅ Complete
 
-**What We Built:** Pending.
+**What We Built:** The AeroBeat environment family now has a real contract-centered architecture pivot. `aerobeat-environment-core` owns the shared environment request/result/error/progress/config vocabulary plus fulfillment interfaces and validators; `aerobeat-environment-loader` consumes that contract while preserving its legacy `AeroToolManager` signal/dictionary compatibility surface and built-in image/video/GLB orchestration; `aerobeat-environment-gaussian-splat` fulfills the contract through a repo-root adapter while preserving the lower reusable fulfillment runtime boundary under `addons/aerobeat-environment-gaussian-splat-fulfillment/`.
 
-**Reference Check:** Pending.
+**Reference Check:** `REF-02`, `REF-03`, and `REF-04` are now aligned with the implemented repo roles described in `REF-05`, `REF-06`, and `REF-07`. The realized boundary matches the Task 1 contract-pivot recommendation and does not reintroduce loader-owned contract truth or collapse the gaussian-splat lower package. `REF-01` handoff concerns about making the contract/core boundary explicit are satisfied for this rollout slice.
 
 **Commits:**
-- Pending
+- `b635863` - Add environment core contract boundary
+- `4542fd7` - Migrate loader to environment core contract
+- `47b713e` - Adapt gaussian splat to environment core contract
+- `e148d67` - Update environment contract pivot plan
 
-**Lessons Learned:** Pending.
+**Lessons Learned:** A repo-family rename and docs cleanup are not enough by themselves; the architectural owner has to be visible in manifests, type/validator ownership, and tests or the old boundary will keep leaking back in. The next worthwhile hardening step is a true multi-addon consumer/integration harness so future audits can validate the family together instead of inferring cohesion from three strong repo-local testbeds.
 
 ---
 
-*Completed on Pending*
+*Completed on 2026-05-16*
