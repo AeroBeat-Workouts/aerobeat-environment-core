@@ -1,24 +1,54 @@
-# AeroBeat Internal Environment Template
+# AeroBeat Environment Core
 
-This is the official template for creating **internal environment** repositories within the current AeroBeat v1 architecture.
+`aerobeat-environment-core` is the shared **environment-lane contract package** for AeroBeat.
 
-It should be read against the locked product direction from `aerobeat-docs`:
+It owns the reusable environment request/result/error/progress/config vocabulary that sibling
+repos such as `aerobeat-environment-loader` and `aerobeat-environment-gaussian-splat` can depend on
+without pushing environment architecture truth back into those repos.
 
-- **Primary release target:** PC community first
-- **Official v1 gameplay features:** Boxing and Flow
-- **Official v1 gameplay input:** camera only
-- **UI input stance:** mouse and touch remain valid for UI navigation, without implying equal-status gameplay input support
-- **Asset-lane ownership:** shared internal environment contracts belong to the asset lane through `aerobeat-asset-core`
-- **Downscoped environment truth:** this template is for internal/system environment work, not for reviving the older UGC or package-local gameplay environment swap story
+This repo is intentionally **not** a new universal architecture lane.
 
-## 📋 Repository Details
+In plain English: this package is **not a new universal architecture lane**. It stays aligned with
+the existing environment-family package role and the asset-side dependency direction built on
+`aerobeat-asset-core`.
 
-- **Type:** Internal environment template
+## What this repo owns now
+
+- canonical environment kinds and status vocabulary
+- typed request/result/error/progress/config contracts
+- narrow fulfillment/provider base interfaces for kind handlers
+- reusable request normalization and environment config helpers
+- room for package-local internal environment assets when a concrete environment repo needs them
+
+## Contract subtree
+
+Current shared contract surface lives under:
+
+- `src/contracts/globals/` - constants and shared vocabulary
+- `src/contracts/data_types/` - typed DTO-style contract resources/classes
+- `src/contracts/interfaces/` - fulfillment/provider base interfaces
+- `src/contracts/validators/` - request normalization and config helpers
+
+The initial contract slice is intentionally narrow. It is designed to unblock downstream migration
+while preserving current public entrypoints in consumer repos.
+
+## Downstream usage intent
+
+- `aerobeat-environment-loader` should consume these contracts internally while keeping its current
+  public API stable for existing callers.
+- `aerobeat-environment-gaussian-splat` should adapt its fulfillment wrapper/lower package to this
+  contract instead of defining competing environment truth.
+- `aerobeat-environment-core` must not depend back on loader or splat.
+
+## Repository Details
+
+- **Type:** Environment contract/core package
 - **License:** **CC BY-NC 4.0** (Attribution-NonCommercial)
 - **Dependency contract:**
-  - `aerobeat-asset-core` — required shared asset/resource contract for the asset lane
-  - `aerobeat-feature-*` — optional consumer-selected runtime dependency when validating a concrete environment against a specific feature such as Boxing or Flow
-  - additional adjacent lane/core repos only when a concrete internal environment repo truly consumes them
+  - `aerobeat-asset-core` — required shared asset/resource contract for the environment lane
+  - `aerobeat-feature-*` — optional consumer-selected runtime dependency when validating a concrete
+    environment against a specific feature such as Boxing or Flow
+  - additional adjacent lane/core repos only when a concrete environment package truly consumes them
 
 ## GodotEnv development flow
 
@@ -30,7 +60,9 @@ This repo uses the AeroBeat GodotEnv asset-package convention.
 - Hidden workbench project: `.testbed/project.godot`
 - Repo-local unit tests: `.testbed/tests/`
 
-The repo root remains the package/published boundary for downstream consumers. Day-to-day development, import checks, and validation happen from the hidden `.testbed/` workbench using the pinned OpenClaw toolchain: Godot `4.6.2 stable standard`.
+The repo root remains the package/published boundary for downstream consumers. Day-to-day
+validation happens from the hidden `.testbed/` workbench using the pinned OpenClaw toolchain:
+Godot `4.6.2 stable standard`.
 
 ### Restore dev/test dependencies
 
@@ -40,18 +72,6 @@ From the repo root:
 cd .testbed
 godotenv addons install
 ```
-
-That restores this repo's current dev/test manifest into `.testbed/addons/`. Canonically, this template should keep the baseline manifest narrow: `aerobeat-asset-core` plus test-only tooling.
-
-### Open the workbench
-
-From the repo root:
-
-```bash
-godot --editor --path .testbed
-```
-
-Use this `.testbed/` project as the canonical direct-development and import-validation surface for internal environment work.
 
 ### Import smoke check
 
@@ -72,23 +92,19 @@ godot --headless --path .testbed --script addons/gut/gut_cmdln.gd \
   -gexit
 ```
 
-## 📂 Structure
+## Structure
 
-- `assets/environments/` - Internal environment scenes, resources, and package-local content roots for current AeroBeat product surfaces.
-- `assets/lighting/` - Lighting rigs, sky resources, fog/material helpers, and other environment presentation resources.
-- `assets/reactive/` - Optional reactive-light or presentation-driving resources when a concrete environment package needs them.
+- `src/contracts/` - shared environment contract code for loader/fulfillment consumers
+- `assets/environments/` - optional internal environment scenes/resources if this package grows
+  authored environment content later
+- `assets/lighting/` - optional lighting and presentation resources
+- `assets/reactive/` - optional reactive presentation resources
 
 ## Validation notes
 
 - `.testbed/addons.jsonc` is the committed dev/test dependency contract.
-- The canonical template manifest for this repo is `aerobeat-asset-core` + `gut`.
-- Do **not** restore a universal `aerobeat-core` baseline here. Add a concrete `aerobeat-feature-*` repo only when a real downstream environment package needs feature-specific validation.
-- Repo-local unit tests live under `.testbed/tests/` and currently validate repo metadata plus the manifest contract.
-- This template is root-packaged (`subfolder: "/"`) and does not use a `.testbed/src` bridge; add real content directly under the repo root package boundary.
-- Environment runtime/display interpretation belongs to consuming assemblies and feature lanes; this generic template should keep authored environment ownership focused on reusable asset-side content.
-
-## Notes
-
-- These environments are intended for internal AeroBeat assemblies and controlled product presentation surfaces.
-- Boxing and Flow are the retained gameplay-facing examples for current v1 truth; non-retained feature examples should not be taught as baseline template scope.
-- Keep feature-specific runtime dependencies explicit and selective rather than pretending one universal feature baseline fits every environment repo.
+- The canonical manifest for this repo remains narrow: `aerobeat-asset-core` + `gut`.
+- Repo-local tests now validate the environment contract subtree and basic behavior, not just
+  template metadata.
+- Keep the dependency direction clean: consumer repos depend on this package; this package does not
+  reach back into loader or specialized fulfillment repos.
