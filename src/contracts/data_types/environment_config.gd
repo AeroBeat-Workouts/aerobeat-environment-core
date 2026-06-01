@@ -1,9 +1,11 @@
 class_name AeroEnvironmentConfig
 extends RefCounted
 
-var position: Vector3 = Vector3.ZERO
-var rotation_degrees: Vector3 = Vector3.ZERO
-var scale: Vector3 = Vector3.ONE
+const AeroEnvironmentTransformConfig = preload("environment_transform_config.gd")
+const AeroEnvironmentMediaConfig = preload("environment_media_config.gd")
+
+var transform: AeroEnvironmentTransformConfig = AeroEnvironmentTransformConfig.new()
+var media: AeroEnvironmentMediaConfig = AeroEnvironmentMediaConfig.new()
 var extras: Dictionary = {}
 
 func _init(data: Dictionary = {}) -> void:
@@ -13,34 +15,38 @@ static func from_dict(data: Dictionary):
 	return new(data)
 
 func apply_dict(data: Dictionary):
-	position = _variant_to_vector3(data.get("position", Vector3.ZERO), Vector3.ZERO)
-	rotation_degrees = _variant_to_vector3(data.get("rotation_degrees", Vector3.ZERO), Vector3.ZERO)
-	scale = _variant_to_vector3(data.get("scale", Vector3.ONE), Vector3.ONE)
+	var transform_dict: Dictionary = {}
+	if data.get("transform", {}) is Dictionary:
+		transform_dict = Dictionary(data.get("transform", {})).duplicate(true)
+	elif data.has("position") or data.has("rotation_degrees") or data.has("scale"):
+		transform_dict = {
+			"position": data.get("position", Vector3.ZERO),
+			"rotation_degrees": data.get("rotation_degrees", Vector3.ZERO),
+			"scale": data.get("scale", Vector3.ONE),
+		}
+	transform = AeroEnvironmentTransformConfig.from_dict(transform_dict)
+
+	var media_dict: Dictionary = {}
+	if data.get("media", {}) is Dictionary:
+		media_dict = Dictionary(data.get("media", {})).duplicate(true)
+	elif data.has("fit_mode") or data.has("display_mode"):
+		media_dict = {
+			"fit_mode": data.get("fit_mode", data.get("display_mode", "")),
+		}
+	media = AeroEnvironmentMediaConfig.from_dict(media_dict)
+
 	extras = data.duplicate(true)
+	extras.erase("transform")
+	extras.erase("media")
 	extras.erase("position")
 	extras.erase("rotation_degrees")
 	extras.erase("scale")
+	extras.erase("fit_mode")
+	extras.erase("display_mode")
 	return self
 
 func to_dict() -> Dictionary:
 	var data := extras.duplicate(true)
-	data["position"] = [position.x, position.y, position.z]
-	data["rotation_degrees"] = [rotation_degrees.x, rotation_degrees.y, rotation_degrees.z]
-	data["scale"] = [scale.x, scale.y, scale.z]
+	data["transform"] = transform.to_dict()
+	data["media"] = media.to_dict()
 	return data
-
-static func _variant_to_vector3(value: Variant, default_value: Vector3) -> Vector3:
-	if value is Vector3:
-		return value
-	if value is Array:
-		var array_value: Array = value
-		if array_value.size() >= 3:
-			return Vector3(float(array_value[0]), float(array_value[1]), float(array_value[2]))
-	if value is Dictionary:
-		var dict_value: Dictionary = value
-		return Vector3(
-			float(dict_value.get("x", default_value.x)),
-			float(dict_value.get("y", default_value.y)),
-			float(dict_value.get("z", default_value.z))
-		)
-	return default_value

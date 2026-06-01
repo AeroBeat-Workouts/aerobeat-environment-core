@@ -6,7 +6,8 @@ func fulfill(request: Variant) -> Variant:
 		"request_id": request_dict.get("request_id", ""),
 		"kind": request_dict.get("kind", ""),
 		"asset_path": request_dict.get("asset_path", ""),
-		"config_path": request_dict.get("config_path", ""),
+		"config_path": request_dict.get("config_path", request_dict.get("configPath", "")),
+		"configPath": request_dict.get("config_path", request_dict.get("configPath", "")),
 		"format": ".compressed.ply",
 		"details": {"wrapped": true},
 	}

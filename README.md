@@ -14,8 +14,9 @@ the existing environment-family package role and the asset-side dependency direc
 
 ## What this repo owns now
 
-- canonical environment kinds, lifecycle states, and status vocabulary
+- canonical environment kinds, lifecycle states, status vocabulary, and media `fit_mode` values
 - typed request/result/error/progress/config contracts
+- nested YAML-sidecar config contract for `transform` and `media.fit_mode`
 - typed async operation handles for fulfillment lifecycle and progress reporting
 - narrow fulfillment/provider base interfaces for kind handlers
 - reusable request normalization and environment config helpers
@@ -32,6 +33,30 @@ Current shared contract surface lives under:
 
 The initial contract slice is intentionally narrow. It is designed to unblock downstream migration
 while preserving current public entrypoints in consumer repos.
+
+## Current sidecar contract
+
+Environment records may provide either internal `config_path` or content-facing `configPath` when
+referring to an optional sidecar. The preferred sidecar naming convention is asset basename plus
+`.config.yaml`.
+
+Current nested sidecar shape:
+
+```yaml
+transform:
+  position: [0, 0, 0]
+  rotation_degrees: [0, 0, 0]
+  scale: [1, 1, 1]
+
+media:
+  fit_mode: cover
+```
+
+Allowed `media.fit_mode` values are:
+
+- `stretch`
+- `contain`
+- `cover`
 
 ## Downstream usage intent
 

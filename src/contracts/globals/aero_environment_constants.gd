@@ -6,8 +6,12 @@ const KIND_VIDEO := "video"
 const KIND_GLB := "glb"
 const KIND_SPLAT := "splat"
 
-const DISPLAY_MODE_COVER := "cover"
-const DISPLAY_MODE_CONTAIN := "contain"
+const FIT_MODE_STRETCH := "stretch"
+const FIT_MODE_CONTAIN := "contain"
+const FIT_MODE_COVER := "cover"
+
+const DISPLAY_MODE_CONTAIN := FIT_MODE_CONTAIN
+const DISPLAY_MODE_COVER := FIT_MODE_COVER
 
 const ERROR_FILE_MISSING := "file_missing"
 const ERROR_UNSUPPORTED_FORMAT := "unsupported_format"
@@ -36,6 +40,12 @@ const SUPPORTED_KINDS := [
 	KIND_VIDEO,
 	KIND_GLB,
 	KIND_SPLAT,
+]
+
+const SUPPORTED_FIT_MODES := [
+	FIT_MODE_STRETCH,
+	FIT_MODE_CONTAIN,
+	FIT_MODE_COVER,
 ]
 
 const SUPPORTED_STATES := [
@@ -74,14 +84,21 @@ const OFFICIAL_FORMATS := {
 static func normalize_kind(kind: String) -> String:
 	return kind.strip_edges().to_lower()
 
+static func normalize_fit_mode(fit_mode: String) -> String:
+	var normalized := fit_mode.strip_edges().to_lower()
+	return normalized if SUPPORTED_FIT_MODES.has(normalized) else FIT_MODE_COVER
+
 static func normalize_display_mode(display_mode: String) -> String:
-	return DISPLAY_MODE_CONTAIN if display_mode.strip_edges().to_lower() == DISPLAY_MODE_CONTAIN else DISPLAY_MODE_COVER
+	return normalize_fit_mode(display_mode)
 
 static func normalize_state(state: String) -> String:
 	return state.strip_edges().to_lower()
 
 static func supports_kind(kind: String) -> bool:
 	return SUPPORTED_KINDS.has(normalize_kind(kind))
+
+static func supports_fit_mode(fit_mode: String) -> bool:
+	return SUPPORTED_FIT_MODES.has(normalize_fit_mode(fit_mode))
 
 static func supports_state(state: String) -> bool:
 	return SUPPORTED_STATES.has(normalize_state(state))
@@ -107,9 +124,11 @@ static func preferred_config_path(asset_path: String) -> String:
 	var normalized := asset_path.strip_edges()
 	if normalized.is_empty():
 		return ""
+	var base_path := normalized
 	var lower := normalized.to_lower()
-	if lower.ends_with(OFFICIAL_FORMATS[KIND_SPLAT]):
-		return normalized.substr(0, normalized.length() - OFFICIAL_FORMATS[KIND_SPLAT].length()) + ".json"
-	if lower.ends_with(OFFICIAL_FORMATS[KIND_GLB]):
-		return normalized.substr(0, normalized.length() - OFFICIAL_FORMATS[KIND_GLB].length()) + ".json"
-	return normalized + ".json"
+	for format in OFFICIAL_FORMATS.values():
+		var format_string := String(format)
+		if lower.ends_with(format_string):
+			base_path = normalized.substr(0, normalized.length() - format_string.length())
+			break
+	return "%s.config.yaml" % base_path

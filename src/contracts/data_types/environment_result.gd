@@ -24,7 +24,7 @@ func apply_dict(data: Dictionary):
 	request_id = String(data.get("request_id", "")).strip_edges()
 	kind = AeroEnvironmentConstants.normalize_kind(String(data.get("kind", "")))
 	asset_path = String(data.get("asset_path", "")).strip_edges()
-	config_path = String(data.get("config_path", "")).strip_edges()
+	config_path = String(data.get("config_path", data.get("configPath", ""))).strip_edges()
 	format = String(data.get("format", "")).strip_edges().to_lower()
 	config_applied = bool(data.get("config_applied", false))
 	metadata = Dictionary(data.get("metadata", {})) if data.get("metadata", {}) is Dictionary else {}
@@ -38,6 +38,7 @@ func to_dict() -> Dictionary:
 		"kind": kind,
 		"asset_path": asset_path,
 		"config_path": config_path,
+		"configPath": config_path,
 		"format": format,
 		"config_applied": config_applied,
 		"metadata": metadata.duplicate(true),

@@ -25,10 +25,7 @@ static func normalize_request_dict(request: Dictionary, auto_fill_config: bool =
 			AeroEnvironmentConstants.ERROR_UNSUPPORTED_FORMAT,
 			"Environment kind '%s' requires %s assets, got %s." % [normalized_request.kind, required_format, detected_format]
 		)
-	if auto_fill_config and normalized_request.config_path.is_empty() and (
-		normalized_request.kind == AeroEnvironmentConstants.KIND_GLB
-		or normalized_request.kind == AeroEnvironmentConstants.KIND_SPLAT
-	):
+	if auto_fill_config and normalized_request.config_path.is_empty():
 		var preferred_config_path := AeroEnvironmentConstants.preferred_config_path(normalized_request.asset_path)
 		if path_exists(preferred_config_path):
 			normalized_request.config_path = preferred_config_path

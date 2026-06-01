@@ -20,9 +20,9 @@ static func apply_config_model(config: Variant, target: Node) -> Dictionary:
 			"message": "Environment config can only be applied to Node3D content.",
 		}
 	var node_3d := target as Node3D
-	node_3d.position = config.position
-	node_3d.rotation_degrees = config.rotation_degrees
-	node_3d.scale = config.scale
+	node_3d.position = config.transform.position
+	node_3d.rotation_degrees = config.transform.rotation_degrees
+	node_3d.scale = config.transform.scale
 	return {
 		"ok": true,
 		"config": config,
