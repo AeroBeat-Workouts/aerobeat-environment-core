@@ -41,14 +41,14 @@ func test_contract_scripts_exist_and_load() -> void:
 	]:
 		assert_true(_load_repo_script(relative_path) != null, "Expected script to load: %s" % relative_path)
 
-func test_request_validator_normalizes_environment_request_shape() -> void:
+func test_request_validator_normalizes_environment_request_shape_and_prefers_yaml_sidecars() -> void:
 	var validator_script := _load_repo_script(REQUEST_VALIDATOR_SCRIPT)
 	var temp_dir := ProjectSettings.globalize_path("user://environment_contract_tests")
 	DirAccess.make_dir_recursive_absolute(temp_dir)
 	var asset_path := "%s/sample_scene.glb" % temp_dir
 	var config_path := "%s/sample_scene.config.yaml" % temp_dir
 	FileAccess.open(asset_path, FileAccess.WRITE).store_string("fake glb placeholder")
-	FileAccess.open(config_path, FileAccess.WRITE).store_string("transform:\n  position: [0, 0, 0]\n")
+	FileAccess.open(config_path, FileAccess.WRITE).store_string("transform:\n  position: [1, 2, 3]\n")
 
 	var result: Dictionary = validator_script.normalize_request_dict({
 		"request_id": "  req-42  ",
@@ -68,38 +68,36 @@ func test_request_validator_normalizes_environment_request_shape() -> void:
 	assert_eq(result.get("request_dict", {}).get("configPath", ""), config_path)
 	assert_eq(result.get("request_dict", {}).get("metadata", {}).get("tag", ""), "contract")
 
-func test_request_validator_accepts_configpath_alias_and_media_kinds() -> void:
+func test_request_validator_accepts_legacy_aliases_for_fit_mode_and_config_path() -> void:
 	var validator_script := _load_repo_script(REQUEST_VALIDATOR_SCRIPT)
-	var temp_dir := ProjectSettings.globalize_path("user://environment_contract_tests_media")
-	DirAccess.make_dir_recursive_absolute(temp_dir)
-	var asset_path := "%s/hero.png" % temp_dir
-	var config_path := "%s/hero.config.yaml" % temp_dir
-	FileAccess.open(asset_path, FileAccess.WRITE).store_string("fake image placeholder")
-	FileAccess.open(config_path, FileAccess.WRITE).store_string("media:\n  fit_mode: stretch\n")
-
 	var result: Dictionary = validator_script.normalize_request_dict({
-		"request_id": "req-media",
+		"request_id": "req-image",
 		"kind": "image",
-		"asset_path": asset_path,
-		"configPath": "  %s  " % config_path,
+		"asset_path": "/tmp/poster.png",
+		"configPath": "/tmp/poster.config.yaml",
 		"display_mode": "stretch",
 	})
 
-	assert_true(result.get("ok", false), "Expected media request normalization to succeed")
+	assert_true(result.get("ok", false), "Expected alias-based request normalization to succeed")
 	var request = result.get("request")
-	assert_eq(request.config_path, config_path)
+	assert_eq(request.config_path, "/tmp/poster.config.yaml")
 	assert_eq(request.fit_mode, "stretch")
 	assert_eq(result.get("request_dict", {}).get("display_mode", ""), "stretch")
 
-func test_constants_preferred_config_path_uses_yaml_sidecars() -> void:
-	var constants_script := _load_repo_script(CONSTANTS_SCRIPT)
-	assert_eq(constants_script.preferred_config_path("res://assets/environments/sky.glb"), "res://assets/environments/sky.config.yaml")
-	assert_eq(constants_script.preferred_config_path("res://assets/environments/clouds.compressed.ply"), "res://assets/environments/clouds.config.yaml")
-	assert_eq(constants_script.preferred_config_path("res://assets/environments/poster.png"), "res://assets/environments/poster.config.yaml")
-	assert_eq(constants_script.normalize_fit_mode(" STRETCH "), "stretch")
-	assert_eq(constants_script.normalize_fit_mode("unknown"), "cover")
+func test_request_validator_reports_unsupported_format_with_typed_error() -> void:
+	var validator_script := _load_repo_script(REQUEST_VALIDATOR_SCRIPT)
+	var result: Dictionary = validator_script.normalize_request_dict({
+		"request_id": "req-bad",
+		"kind": "image",
+		"asset_path": "/tmp/not-an-image.glb",
+	})
 
-func test_config_helper_applies_nested_transform_and_defaults_media_fit_mode() -> void:
+	assert_false(result.get("ok", true), "Expected invalid format to fail")
+	assert_eq(result.get("error_code", ""), "unsupported_format")
+	assert_true(result.has("error"), "Expected typed error contract to be returned")
+	assert_eq(result.get("error_dict", {}).get("request_id", ""), "req-bad")
+
+func test_config_helper_applies_nested_transform_to_node3d() -> void:
 	var helper_script := _load_repo_script(CONFIG_HELPER_SCRIPT)
 	var target := Node3D.new()
 	var result: Dictionary = helper_script.apply_config_dict({
@@ -108,7 +106,7 @@ func test_config_helper_applies_nested_transform_and_defaults_media_fit_mode() -
 			"rotation_degrees": {"x": 10, "y": 20, "z": 30},
 			"scale": [2, 3, 4],
 		},
-		"media": {},
+		"media": {"fit_mode": "contain"},
 	}, target)
 
 	assert_true(result.get("ok", false), "Expected config helper to apply successfully")
@@ -117,33 +115,33 @@ func test_config_helper_applies_nested_transform_and_defaults_media_fit_mode() -
 	assert_almost_eq(target.rotation_degrees.y, 20.0, 0.001)
 	assert_almost_eq(target.rotation_degrees.z, 30.0, 0.001)
 	assert_eq(target.scale, Vector3(2, 3, 4))
-	assert_eq(result.get("config").media.fit_mode, "cover")
+	assert_eq(result.get("config").media.fit_mode, "contain")
 	target.free()
 
-func test_config_data_type_round_trips_nested_transform_and_media() -> void:
+func test_config_defaults_to_nested_transform_and_cover_fit_mode() -> void:
 	var config_script := _load_repo_script(CONFIG_SCRIPT)
-	var config = config_script.new({
-		"transform": {
-			"position": [4, 5, 6],
-		},
-		"media": {
-			"fit_mode": "contain",
-		},
-		"tag": "demo",
-	})
-	assert_eq(config.transform.position, Vector3(4, 5, 6))
+	var config = config_script.new({})
+	assert_eq(config.transform.position, Vector3.ZERO)
 	assert_eq(config.transform.rotation_degrees, Vector3.ZERO)
 	assert_eq(config.transform.scale, Vector3.ONE)
-	assert_eq(config.media.fit_mode, "contain")
-	assert_eq(config.extras.get("tag", ""), "demo")
+	assert_eq(config.media.fit_mode, "cover")
 	assert_eq(config.to_dict().get("transform", {}).get("scale", []), [1.0, 1.0, 1.0])
-	assert_eq(config.to_dict().get("media", {}).get("fit_mode", ""), "contain")
+
+func test_constants_normalize_fit_mode_and_build_yaml_config_paths() -> void:
+	var constants_script = _load_repo_script(CONSTANTS_SCRIPT)
+	assert_eq(constants_script.normalize_fit_mode("stretch"), "stretch")
+	assert_eq(constants_script.normalize_fit_mode(" CONTAIN "), "contain")
+	assert_eq(constants_script.normalize_fit_mode("weird"), "cover")
+	assert_eq(constants_script.preferred_config_path("assets/models/alien-planet.glb"), "assets/models/alien-planet.config.yaml")
+	assert_eq(constants_script.preferred_config_path("assets/splats/floor.compressed.ply"), "assets/splats/floor.config.yaml")
+	assert_eq(constants_script.preferred_config_path("assets/images/poster.png"), "assets/images/poster.config.yaml")
 
 func test_data_type_round_trip_and_kind_handler_behavior() -> void:
 	var request_script := _load_repo_script(REQUEST_SCRIPT)
 	var result_script := _load_repo_script(RESULT_SCRIPT)
 	var error_script := _load_repo_script(ERROR_SCRIPT)
 	var progress_script := _load_repo_script(PROGRESS_SCRIPT)
+	var config_script := _load_repo_script(CONFIG_SCRIPT)
 	var kind_handler_script := _load_repo_script(KIND_HANDLER_SCRIPT)
 
 	var request = request_script.new({
@@ -155,7 +153,6 @@ func test_data_type_round_trip_and_kind_handler_behavior() -> void:
 		"metadata": {"a": 1},
 	})
 	assert_eq(request.to_dict().get("kind", ""), "splat")
-	assert_eq(request.to_dict().get("config_path", ""), "/tmp/sample.config.yaml")
 	assert_eq(request.to_dict().get("configPath", ""), "/tmp/sample.config.yaml")
 	assert_eq(request.to_dict().get("fit_mode", ""), "stretch")
 
@@ -168,7 +165,7 @@ func test_data_type_round_trip_and_kind_handler_behavior() -> void:
 		"details": {"point_count": 12},
 	})
 	assert_eq(result.to_dict().get("details", {}).get("point_count", 0), 12)
-	assert_eq(result.to_dict().get("configPath", ""), request.config_path)
+	assert_eq(result.to_dict().get("configPath", ""), "/tmp/sample.config.yaml")
 
 	var error = error_script.new({
 		"request_id": request.request_id,
@@ -196,6 +193,17 @@ func test_data_type_round_trip_and_kind_handler_behavior() -> void:
 	assert_eq(progress.sequence, 0)
 	assert_true(progress.indeterminate)
 
+	var config = config_script.new({
+		"transform": {
+			"position": [4, 5, 6],
+		},
+		"media": {
+			"fit_mode": "contain",
+		},
+	})
+	assert_eq(config.transform.position, Vector3(4, 5, 6))
+	assert_eq(config.media.fit_mode, "contain")
+
 	var handler = kind_handler_script.new("splat")
 	assert_true(handler.supports_kind(" SPLAT "), "Kind handler should normalize kind lookups")
 	assert_false(handler.supports_kind("glb"), "Kind handler should reject other kinds")
@@ -208,7 +216,6 @@ func test_operation_lifecycle_emits_typed_signals_and_tracks_terminal_state() ->
 		"kind": "splat",
 		"asset_path": "/tmp/hero.compressed.ply",
 		"configPath": "/tmp/hero.config.yaml",
-		"fit_mode": "contain",
 	})
 	var operation = operation_script.new(request)
 	var events: Array[String] = []
@@ -255,7 +262,7 @@ func test_operation_lifecycle_emits_typed_signals_and_tracks_terminal_state() ->
 	assert_eq(operation.latest_progress.status, "ready")
 	assert_eq(operation.latest_progress.progress, 1.0)
 	assert_eq(result.format, ".compressed.ply")
-	assert_eq(result.config_path, request.config_path)
+	assert_eq(result.config_path, "/tmp/hero.config.yaml")
 	assert_eq(events, ["started", "progressed", "succeeded", "finished"])
 	assert_eq(sequences, [1, 2])
 
@@ -303,7 +310,6 @@ func test_begin_fulfill_wraps_sync_success_into_finished_operation() -> void:
 		"request_id": "req-sync-success",
 		"kind": "splat",
 		"asset_path": "/tmp/success.compressed.ply",
-		"configPath": "/tmp/success.config.yaml",
 	})
 	var fulfillment = load(FAKE_SUCCESS_FULFILLMENT_SCRIPT).new()
 	var operation = fulfillment.begin_fulfill(request)
@@ -314,7 +320,6 @@ func test_begin_fulfill_wraps_sync_success_into_finished_operation() -> void:
 	assert_eq(operation.latest_progress.state, "succeeded")
 	assert_eq(operation.latest_progress.status, "ready")
 	assert_eq(operation.result.details.get("wrapped", false), true)
-	assert_eq(operation.result.config_path, request.config_path)
 	assert_eq(operation.error, null)
 
 func test_begin_fulfill_wraps_sync_failure_into_finished_operation() -> void:

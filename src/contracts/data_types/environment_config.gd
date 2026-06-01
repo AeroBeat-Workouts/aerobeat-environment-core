@@ -15,25 +15,25 @@ static func from_dict(data: Dictionary):
 	return new(data)
 
 func apply_dict(data: Dictionary):
-	var transform_dict: Dictionary = {}
-	if data.get("transform", {}) is Dictionary:
-		transform_dict = Dictionary(data.get("transform", {})).duplicate(true)
+	var transform_payload: Dictionary = {}
+	if data.get("transform", null) is Dictionary:
+		transform_payload = Dictionary(data.get("transform", {}))
 	elif data.has("position") or data.has("rotation_degrees") or data.has("scale"):
-		transform_dict = {
+		transform_payload = {
 			"position": data.get("position", Vector3.ZERO),
 			"rotation_degrees": data.get("rotation_degrees", Vector3.ZERO),
 			"scale": data.get("scale", Vector3.ONE),
 		}
-	transform = AeroEnvironmentTransformConfig.from_dict(transform_dict)
+	transform = AeroEnvironmentTransformConfig.from_dict(transform_payload)
 
-	var media_dict: Dictionary = {}
-	if data.get("media", {}) is Dictionary:
-		media_dict = Dictionary(data.get("media", {})).duplicate(true)
+	var media_payload: Dictionary = {}
+	if data.get("media", null) is Dictionary:
+		media_payload = Dictionary(data.get("media", {}))
 	elif data.has("fit_mode") or data.has("display_mode"):
-		media_dict = {
-			"fit_mode": data.get("fit_mode", data.get("display_mode", "")),
+		media_payload = {
+			"fit_mode": data.get("fit_mode", data.get("display_mode", "cover")),
 		}
-	media = AeroEnvironmentMediaConfig.from_dict(media_dict)
+	media = AeroEnvironmentMediaConfig.from_dict(media_payload)
 
 	extras = data.duplicate(true)
 	extras.erase("transform")
