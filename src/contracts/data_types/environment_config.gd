@@ -18,21 +18,11 @@ func apply_dict(data: Dictionary):
 	var transform_payload: Dictionary = {}
 	if data.get("transform", null) is Dictionary:
 		transform_payload = Dictionary(data.get("transform", {}))
-	elif data.has("position") or data.has("rotation_degrees") or data.has("scale"):
-		transform_payload = {
-			"position": data.get("position", Vector3.ZERO),
-			"rotation_degrees": data.get("rotation_degrees", Vector3.ZERO),
-			"scale": data.get("scale", Vector3.ONE),
-		}
 	transform = AeroEnvironmentTransformConfig.from_dict(transform_payload)
 
 	var media_payload: Dictionary = {}
 	if data.get("media", null) is Dictionary:
 		media_payload = Dictionary(data.get("media", {}))
-	elif data.has("fit_mode") or data.has("display_mode"):
-		media_payload = {
-			"fit_mode": data.get("fit_mode", data.get("display_mode", "cover")),
-		}
 	media = AeroEnvironmentMediaConfig.from_dict(media_payload)
 
 	extras = data.duplicate(true)

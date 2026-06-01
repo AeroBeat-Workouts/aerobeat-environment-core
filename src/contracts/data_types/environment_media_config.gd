@@ -12,7 +12,7 @@ static func from_dict(data: Dictionary):
 	return new(data)
 
 func apply_dict(data: Dictionary):
-	fit_mode = AeroEnvironmentConstants.normalize_fit_mode(String(data.get("fit_mode", data.get("display_mode", AeroEnvironmentConstants.FIT_MODE_COVER))))
+	fit_mode = AeroEnvironmentConstants.normalize_fit_mode(String(data.get("fit_mode", AeroEnvironmentConstants.FIT_MODE_COVER)))
 	return self
 
 func to_dict() -> Dictionary:

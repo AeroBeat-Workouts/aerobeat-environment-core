@@ -68,7 +68,7 @@ func test_request_validator_normalizes_environment_request_shape_and_prefers_yam
 	assert_eq(result.get("request_dict", {}).get("configPath", ""), config_path)
 	assert_eq(result.get("request_dict", {}).get("metadata", {}).get("tag", ""), "contract")
 
-func test_request_validator_accepts_legacy_aliases_for_fit_mode_and_config_path() -> void:
+func test_request_validator_keeps_config_path_alias_but_drops_legacy_display_mode_alias() -> void:
 	var validator_script := _load_repo_script(REQUEST_VALIDATOR_SCRIPT)
 	var result: Dictionary = validator_script.normalize_request_dict({
 		"request_id": "req-image",
@@ -78,11 +78,11 @@ func test_request_validator_accepts_legacy_aliases_for_fit_mode_and_config_path(
 		"display_mode": "stretch",
 	})
 
-	assert_true(result.get("ok", false), "Expected alias-based request normalization to succeed")
+	assert_true(result.get("ok", false), "Expected request normalization to succeed")
 	var request = result.get("request")
 	assert_eq(request.config_path, "/tmp/poster.config.yaml")
-	assert_eq(request.fit_mode, "stretch")
-	assert_eq(result.get("request_dict", {}).get("display_mode", ""), "stretch")
+	assert_eq(request.fit_mode, "cover")
+	assert_false(result.get("request_dict", {}).has("display_mode"))
 
 func test_request_validator_reports_unsupported_format_with_typed_error() -> void:
 	var validator_script := _load_repo_script(REQUEST_VALIDATOR_SCRIPT)
@@ -127,6 +127,27 @@ func test_config_defaults_to_nested_transform_and_cover_fit_mode() -> void:
 	assert_eq(config.media.fit_mode, "cover")
 	assert_eq(config.to_dict().get("transform", {}).get("scale", []), [1.0, 1.0, 1.0])
 
+func test_config_ignores_legacy_flat_transform_and_media_aliases() -> void:
+	var config_script := _load_repo_script(CONFIG_SCRIPT)
+	var config = config_script.new({
+		"position": [9, 8, 7],
+		"rotation_degrees": [6, 5, 4],
+		"scale": [3, 2, 1],
+		"fit_mode": "stretch",
+		"display_mode": "contain",
+	})
+	var config_dict: Dictionary = config.to_dict()
+
+	assert_eq(config.transform.position, Vector3.ZERO)
+	assert_eq(config.transform.rotation_degrees, Vector3.ZERO)
+	assert_eq(config.transform.scale, Vector3.ONE)
+	assert_eq(config.media.fit_mode, "cover")
+	assert_false(config_dict.has("position"))
+	assert_false(config_dict.has("rotation_degrees"))
+	assert_false(config_dict.has("scale"))
+	assert_false(config_dict.has("fit_mode"))
+	assert_false(config_dict.has("display_mode"))
+
 func test_constants_normalize_fit_mode_and_build_yaml_config_paths() -> void:
 	var constants_script = _load_repo_script(CONSTANTS_SCRIPT)
 	assert_eq(constants_script.normalize_fit_mode("stretch"), "stretch")
@@ -155,6 +176,7 @@ func test_data_type_round_trip_and_kind_handler_behavior() -> void:
 	assert_eq(request.to_dict().get("kind", ""), "splat")
 	assert_eq(request.to_dict().get("configPath", ""), "/tmp/sample.config.yaml")
 	assert_eq(request.to_dict().get("fit_mode", ""), "stretch")
+	assert_false(request.to_dict().has("display_mode"))
 
 	var result = result_script.new({
 		"request_id": request.request_id,

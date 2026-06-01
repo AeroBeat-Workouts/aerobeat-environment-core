@@ -10,9 +10,6 @@ const FIT_MODE_STRETCH := "stretch"
 const FIT_MODE_CONTAIN := "contain"
 const FIT_MODE_COVER := "cover"
 
-const DISPLAY_MODE_CONTAIN := FIT_MODE_CONTAIN
-const DISPLAY_MODE_COVER := FIT_MODE_COVER
-
 const ERROR_FILE_MISSING := "file_missing"
 const ERROR_UNSUPPORTED_FORMAT := "unsupported_format"
 const ERROR_INVALID_REQUEST := "invalid_request"
@@ -87,9 +84,6 @@ static func normalize_kind(kind: String) -> String:
 static func normalize_fit_mode(fit_mode: String) -> String:
 	var normalized := fit_mode.strip_edges().to_lower()
 	return normalized if SUPPORTED_FIT_MODES.has(normalized) else FIT_MODE_COVER
-
-static func normalize_display_mode(display_mode: String) -> String:
-	return normalize_fit_mode(display_mode)
 
 static func normalize_state(state: String) -> String:
 	return state.strip_edges().to_lower()

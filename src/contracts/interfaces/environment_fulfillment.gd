@@ -67,6 +67,5 @@ func _request_result_dict(value: Variant) -> Dictionary:
 		"config_path": request.config_path,
 		"configPath": request.config_path,
 		"fit_mode": request.fit_mode,
-		"display_mode": request.fit_mode,
 		"metadata": request.metadata.duplicate(true),
 	}

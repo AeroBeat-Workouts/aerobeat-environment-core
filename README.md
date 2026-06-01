@@ -58,6 +58,11 @@ Allowed `media.fit_mode` values are:
 - `contain`
 - `cover`
 
+Legacy top-level transform fields (`position`, `rotation_degrees`, `scale`) and legacy media-fit
+aliases such as `display_mode` are intentionally not part of the contract and are stripped/ignored
+by this package. The only remaining request-shape alias is `configPath`, which stays supported as a
+content-facing synonym for internal `config_path`.
+
 ## Downstream usage intent
 
 - `aerobeat-environment-loader` should consume these contracts internally while keeping its current
