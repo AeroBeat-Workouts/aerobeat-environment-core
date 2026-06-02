@@ -117,7 +117,7 @@ godot --headless --path .testbed --import
 From the repo root:
 
 ```bash
-godot --headless --path .testbed --script addons/gut/gut_cmdln.gd \
+godot --headless --path .testbed --script addons/aerobeat-vendor-godot-unit-test/gut_cmdln.gd \
   -gdir=res://tests \
   -ginclude_subdirs \
   -gexit
@@ -134,7 +134,7 @@ godot --headless --path .testbed --script addons/gut/gut_cmdln.gd \
 ## Validation notes
 
 - `.testbed/addons.jsonc` is the committed dev/test dependency contract.
-- The canonical manifest for this repo remains narrow: `aerobeat-asset-core` + `gut`.
+- The canonical manifest for this repo remains narrow: `aerobeat-asset-core` + `aerobeat-vendor-godot-unit-test`.
 - Repo-local tests now validate the environment contract subtree and basic behavior, not just
   template metadata.
 - Keep the dependency direction clean: consumer repos depend on this package; this package does not
