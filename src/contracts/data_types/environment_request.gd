@@ -1,13 +1,13 @@
 class_name AeroEnvironmentRequest
 extends RefCounted
 
-const AeroEnvironmentConstants = preload("../globals/aero_environment_constants.gd")
+const AeroEnvironmentConstantsScript = preload("../globals/aero_environment_constants.gd")
 
 var request_id: String = ""
 var kind: String = ""
 var asset_path: String = ""
 var config_path: String = ""
-var fit_mode: String = AeroEnvironmentConstants.FIT_MODE_COVER
+var fit_mode: String = AeroEnvironmentConstantsScript.FIT_MODE_COVER
 var context: Dictionary = {}
 var metadata: Dictionary = {}
 
@@ -19,10 +19,10 @@ static func from_dict(data: Dictionary):
 
 func apply_dict(data: Dictionary):
 	request_id = String(data.get("request_id", "")).strip_edges()
-	kind = AeroEnvironmentConstants.normalize_kind(String(data.get("kind", "")))
+	kind = AeroEnvironmentConstantsScript.normalize_kind(String(data.get("kind", "")))
 	asset_path = String(data.get("asset_path", "")).strip_edges()
 	config_path = String(data.get("config_path", data.get("configPath", ""))).strip_edges()
-	fit_mode = AeroEnvironmentConstants.normalize_fit_mode(String(data.get("fit_mode", AeroEnvironmentConstants.FIT_MODE_COVER)))
+	fit_mode = AeroEnvironmentConstantsScript.normalize_fit_mode(String(data.get("fit_mode", AeroEnvironmentConstantsScript.FIT_MODE_COVER)))
 	context = data.get("context", {}) if data.get("context", {}) is Dictionary else {}
 	metadata = Dictionary(data.get("metadata", {})) if data.get("metadata", {}) is Dictionary else {}
 	return self

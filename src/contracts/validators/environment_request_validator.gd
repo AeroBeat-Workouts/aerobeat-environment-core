@@ -1,7 +1,7 @@
 class_name AeroEnvironmentRequestValidator
 extends RefCounted
 
-const AeroEnvironmentConstants = preload("../globals/aero_environment_constants.gd")
+const AeroEnvironmentConstantsScript = preload("../globals/aero_environment_constants.gd")
 const AeroEnvironmentRequest = preload("../data_types/environment_request.gd")
 const AeroEnvironmentError = preload("../data_types/environment_error.gd")
 
@@ -9,24 +9,24 @@ static func normalize_request_dict(request: Dictionary, auto_fill_config: bool =
 	var normalized_request = AeroEnvironmentRequest.from_dict(request)
 	if normalized_request.kind.is_empty():
 		return _invalid_request(normalized_request, "Environment request is missing kind.")
-	if not AeroEnvironmentConstants.supports_kind(normalized_request.kind):
+	if not AeroEnvironmentConstantsScript.supports_kind(normalized_request.kind):
 		return _error_result(
 			normalized_request,
-			AeroEnvironmentConstants.ERROR_UNSUPPORTED_FORMAT,
+			AeroEnvironmentConstantsScript.ERROR_UNSUPPORTED_FORMAT,
 			"Environment kind '%s' is not supported." % normalized_request.kind
 		)
 	if normalized_request.asset_path.is_empty():
 		return _invalid_request(normalized_request, "Environment request is missing asset_path.")
-	var detected_format := AeroEnvironmentConstants.detect_format(normalized_request.asset_path)
-	var required_format := AeroEnvironmentConstants.required_format_for_kind(normalized_request.kind)
+	var detected_format := AeroEnvironmentConstantsScript.detect_format(normalized_request.asset_path)
+	var required_format := AeroEnvironmentConstantsScript.required_format_for_kind(normalized_request.kind)
 	if detected_format != required_format:
 		return _error_result(
 			normalized_request,
-			AeroEnvironmentConstants.ERROR_UNSUPPORTED_FORMAT,
+			AeroEnvironmentConstantsScript.ERROR_UNSUPPORTED_FORMAT,
 			"Environment kind '%s' requires %s assets, got %s." % [normalized_request.kind, required_format, detected_format]
 		)
 	if auto_fill_config and normalized_request.config_path.is_empty():
-		var preferred_config_path := AeroEnvironmentConstants.preferred_config_path(normalized_request.asset_path)
+		var preferred_config_path := AeroEnvironmentConstantsScript.preferred_config_path(normalized_request.asset_path)
 		if path_exists(preferred_config_path):
 			normalized_request.config_path = preferred_config_path
 	return {
@@ -61,7 +61,7 @@ static func to_resource_path(path: String) -> String:
 	return ""
 
 static func _invalid_request(request, message: String) -> Dictionary:
-	return _error_result(request, AeroEnvironmentConstants.ERROR_INVALID_REQUEST, message)
+	return _error_result(request, AeroEnvironmentConstantsScript.ERROR_INVALID_REQUEST, message)
 
 static func _error_result(request, error_code: String, message: String) -> Dictionary:
 	var error := AeroEnvironmentError.new({

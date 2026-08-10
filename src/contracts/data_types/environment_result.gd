@@ -1,7 +1,7 @@
 class_name AeroEnvironmentResult
 extends RefCounted
 
-const AeroEnvironmentConstants = preload("../globals/aero_environment_constants.gd")
+const AeroEnvironmentConstantsScript = preload("../globals/aero_environment_constants.gd")
 
 var ok: bool = true
 var request_id: String = ""
@@ -22,7 +22,7 @@ static func from_dict(data: Dictionary):
 func apply_dict(data: Dictionary):
 	ok = bool(data.get("ok", true))
 	request_id = String(data.get("request_id", "")).strip_edges()
-	kind = AeroEnvironmentConstants.normalize_kind(String(data.get("kind", "")))
+	kind = AeroEnvironmentConstantsScript.normalize_kind(String(data.get("kind", "")))
 	asset_path = String(data.get("asset_path", "")).strip_edges()
 	config_path = String(data.get("config_path", data.get("configPath", ""))).strip_edges()
 	format = String(data.get("format", "")).strip_edges().to_lower()

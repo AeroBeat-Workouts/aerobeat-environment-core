@@ -1,13 +1,13 @@
 class_name AeroEnvironmentProgress
 extends RefCounted
 
-const AeroEnvironmentConstants = preload("../globals/aero_environment_constants.gd")
+const AeroEnvironmentConstantsScript = preload("../globals/aero_environment_constants.gd")
 
 var request_id: String = ""
 var kind: String = ""
 var asset_path: String = ""
-var state: String = AeroEnvironmentConstants.STATE_PENDING
-var status: String = AeroEnvironmentConstants.STATUS_RESOLVING
+var state: String = AeroEnvironmentConstantsScript.STATE_PENDING
+var status: String = AeroEnvironmentConstantsScript.STATUS_RESOLVING
 var phase: String = ""
 var progress: float = 0.0
 var sequence: int = 0
@@ -23,10 +23,10 @@ static func from_dict(data: Dictionary):
 
 func apply_dict(data: Dictionary):
 	request_id = String(data.get("request_id", "")).strip_edges()
-	kind = AeroEnvironmentConstants.normalize_kind(String(data.get("kind", "")))
+	kind = AeroEnvironmentConstantsScript.normalize_kind(String(data.get("kind", "")))
 	asset_path = String(data.get("asset_path", "")).strip_edges()
-	state = AeroEnvironmentConstants.normalize_state(String(data.get("state", AeroEnvironmentConstants.STATE_PENDING)))
-	status = String(data.get("status", AeroEnvironmentConstants.STATUS_RESOLVING)).strip_edges().to_lower()
+	state = AeroEnvironmentConstantsScript.normalize_state(String(data.get("state", AeroEnvironmentConstantsScript.STATE_PENDING)))
+	status = String(data.get("status", AeroEnvironmentConstantsScript.STATUS_RESOLVING)).strip_edges().to_lower()
 	phase = String(data.get("phase", "")).strip_edges().to_lower()
 	progress = clampf(float(data.get("progress", 0.0)), 0.0, 1.0)
 	sequence = max(0, int(data.get("sequence", 0)))

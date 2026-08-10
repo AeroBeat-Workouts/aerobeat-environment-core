@@ -1,7 +1,7 @@
 class_name AeroEnvironmentFulfillment
 extends RefCounted
 
-const AeroEnvironmentConstants = preload("../globals/aero_environment_constants.gd")
+const AeroEnvironmentConstantsScript = preload("../globals/aero_environment_constants.gd")
 const AeroEnvironmentRequest = preload("../data_types/environment_request.gd")
 const AeroEnvironmentResult = preload("../data_types/environment_result.gd")
 const AeroEnvironmentError = preload("../data_types/environment_error.gd")
@@ -41,7 +41,7 @@ func begin_fulfill(request: Variant) -> AeroEnvironmentOperation:
 			"request_id": fallback_request.request_id if fallback_request != null else "",
 			"kind": fallback_request.kind if fallback_request != null else "",
 			"asset_path": fallback_request.asset_path if fallback_request != null else "",
-			"error_code": AeroEnvironmentConstants.ERROR_LOADER_FAILED,
+			"error_code": AeroEnvironmentConstantsScript.ERROR_LOADER_FAILED,
 			"message": "Fulfillment returned null.",
 			"recoverable": false,
 		}))

@@ -1,7 +1,7 @@
 class_name AeroEnvironmentOperation
 extends RefCounted
 
-const AeroEnvironmentConstants = preload("../globals/aero_environment_constants.gd")
+const AeroEnvironmentConstantsScript = preload("../globals/aero_environment_constants.gd")
 const AeroEnvironmentRequest = preload("environment_request.gd")
 const AeroEnvironmentResult = preload("environment_result.gd")
 const AeroEnvironmentError = preload("environment_error.gd")
@@ -17,7 +17,7 @@ var request: AeroEnvironmentRequest = null
 var latest_progress: AeroEnvironmentProgress = null
 var result: AeroEnvironmentResult = null
 var error: AeroEnvironmentError = null
-var state: String = AeroEnvironmentConstants.STATE_PENDING
+var state: String = AeroEnvironmentConstantsScript.STATE_PENDING
 var _sequence_counter: int = 0
 
 func _init(request_data: Variant = null) -> void:
@@ -27,24 +27,24 @@ func _init(request_data: Variant = null) -> void:
 			"request_id": request.request_id,
 			"kind": request.kind,
 			"asset_path": request.asset_path,
-			"state": AeroEnvironmentConstants.STATE_PENDING,
-			"status": AeroEnvironmentConstants.STATUS_QUEUED,
+			"state": AeroEnvironmentConstantsScript.STATE_PENDING,
+			"status": AeroEnvironmentConstantsScript.STATUS_QUEUED,
 			"progress": 0.0,
 			"sequence": 0,
 			"indeterminate": true,
 		})
 
 func is_terminal() -> bool:
-	return AeroEnvironmentConstants.is_terminal_state(state)
+	return AeroEnvironmentConstantsScript.is_terminal_state(state)
 
 func mark_started(progress_data: Variant = null) -> AeroEnvironmentProgress:
 	var progress := _coerce_progress(progress_data)
 	if progress == null:
 		progress = _progress_from_request({})
-	if progress.state.is_empty() or progress.state == AeroEnvironmentConstants.STATE_PENDING:
-		progress.state = AeroEnvironmentConstants.STATE_RUNNING
-	if progress.status.is_empty() or progress.status == AeroEnvironmentConstants.STATUS_QUEUED:
-		progress.status = AeroEnvironmentConstants.STATUS_LOADING
+	if progress.state.is_empty() or progress.state == AeroEnvironmentConstantsScript.STATE_PENDING:
+		progress.state = AeroEnvironmentConstantsScript.STATE_RUNNING
+	if progress.status.is_empty() or progress.status == AeroEnvironmentConstantsScript.STATUS_QUEUED:
+		progress.status = AeroEnvironmentConstantsScript.STATUS_LOADING
 	progress = _store_progress(progress)
 	started.emit(progress)
 	return progress
@@ -53,8 +53,8 @@ func push_progress(progress_data: Variant = null) -> AeroEnvironmentProgress:
 	var progress := _coerce_progress(progress_data)
 	if progress == null:
 		progress = _progress_from_request({})
-	if progress.state.is_empty() or progress.state == AeroEnvironmentConstants.STATE_PENDING:
-		progress.state = AeroEnvironmentConstants.STATE_RUNNING
+	if progress.state.is_empty() or progress.state == AeroEnvironmentConstantsScript.STATE_PENDING:
+		progress.state = AeroEnvironmentConstantsScript.STATE_RUNNING
 	progress = _store_progress(progress)
 	progressed.emit(progress)
 	return progress
@@ -62,13 +62,13 @@ func push_progress(progress_data: Variant = null) -> AeroEnvironmentProgress:
 func succeed(result_data: Variant, final_progress_data: Variant = null) -> AeroEnvironmentResult:
 	result = _coerce_result(result_data)
 	error = null
-	state = AeroEnvironmentConstants.STATE_SUCCEEDED
+	state = AeroEnvironmentConstantsScript.STATE_SUCCEEDED
 	var progress := _coerce_progress(final_progress_data)
 	if progress == null:
 		progress = _progress_from_result(result)
-	progress.state = AeroEnvironmentConstants.STATE_SUCCEEDED
+	progress.state = AeroEnvironmentConstantsScript.STATE_SUCCEEDED
 	if progress.status.is_empty():
-		progress.status = AeroEnvironmentConstants.STATUS_READY
+		progress.status = AeroEnvironmentConstantsScript.STATUS_READY
 	if progress.phase.is_empty():
 		progress.phase = progress.status
 		
@@ -82,13 +82,13 @@ func succeed(result_data: Variant, final_progress_data: Variant = null) -> AeroE
 func fail(error_data: Variant, final_progress_data: Variant = null) -> AeroEnvironmentError:
 	error = _coerce_error(error_data)
 	result = null
-	state = AeroEnvironmentConstants.STATE_FAILED
+	state = AeroEnvironmentConstantsScript.STATE_FAILED
 	var progress := _coerce_progress(final_progress_data)
 	if progress == null:
 		progress = _progress_from_error(error)
-	progress.state = AeroEnvironmentConstants.STATE_FAILED
+	progress.state = AeroEnvironmentConstantsScript.STATE_FAILED
 	if progress.status.is_empty():
-		progress.status = AeroEnvironmentConstants.STATUS_FAILED
+		progress.status = AeroEnvironmentConstantsScript.STATUS_FAILED
 	if progress.phase.is_empty():
 		progress.phase = progress.status
 	_store_progress(progress)
@@ -99,16 +99,16 @@ func fail(error_data: Variant, final_progress_data: Variant = null) -> AeroEnvir
 func cancel(message: String = "", final_progress_data: Variant = null) -> AeroEnvironmentProgress:
 	result = null
 	error = null
-	state = AeroEnvironmentConstants.STATE_CANCELLED
+	state = AeroEnvironmentConstantsScript.STATE_CANCELLED
 	var progress := _coerce_progress(final_progress_data)
 	if progress == null:
 		progress = _progress_from_request({
 			"message": message,
 		})
-	progress.state = AeroEnvironmentConstants.STATE_CANCELLED
-	progress.status = AeroEnvironmentConstants.STATUS_CANCELLED
+	progress.state = AeroEnvironmentConstantsScript.STATE_CANCELLED
+	progress.status = AeroEnvironmentConstantsScript.STATUS_CANCELLED
 	if progress.phase.is_empty():
-		progress.phase = AeroEnvironmentConstants.STATUS_CANCELLED
+		progress.phase = AeroEnvironmentConstantsScript.STATUS_CANCELLED
 	if not message.is_empty() and progress.message.is_empty():
 		progress.message = message
 	progress.indeterminate = false
@@ -185,7 +185,7 @@ func _progress_from_request(data: Dictionary) -> AeroEnvironmentProgress:
 	if not payload.has("state"):
 		payload["state"] = state
 	if not payload.has("status"):
-		payload["status"] = AeroEnvironmentConstants.STATUS_QUEUED
+		payload["status"] = AeroEnvironmentConstantsScript.STATUS_QUEUED
 	return AeroEnvironmentProgress.new(payload)
 
 func _progress_from_result(value: AeroEnvironmentResult) -> AeroEnvironmentProgress:
@@ -193,9 +193,9 @@ func _progress_from_result(value: AeroEnvironmentResult) -> AeroEnvironmentProgr
 		"request_id": value.request_id,
 		"kind": value.kind,
 		"asset_path": value.asset_path,
-		"state": AeroEnvironmentConstants.STATE_SUCCEEDED,
-		"status": AeroEnvironmentConstants.STATUS_READY,
-		"phase": AeroEnvironmentConstants.STATUS_READY,
+		"state": AeroEnvironmentConstantsScript.STATE_SUCCEEDED,
+		"status": AeroEnvironmentConstantsScript.STATUS_READY,
+		"phase": AeroEnvironmentConstantsScript.STATUS_READY,
 		"progress": 1.0,
 		"indeterminate": false,
 	}))
@@ -205,9 +205,9 @@ func _progress_from_error(value: AeroEnvironmentError) -> AeroEnvironmentProgres
 		"request_id": value.request_id,
 		"kind": value.kind,
 		"asset_path": value.asset_path,
-		"state": AeroEnvironmentConstants.STATE_FAILED,
-		"status": AeroEnvironmentConstants.STATUS_FAILED,
-		"phase": latest_progress.phase if latest_progress != null else AeroEnvironmentConstants.STATUS_FAILED,
+		"state": AeroEnvironmentConstantsScript.STATE_FAILED,
+		"status": AeroEnvironmentConstantsScript.STATUS_FAILED,
+		"phase": latest_progress.phase if latest_progress != null else AeroEnvironmentConstantsScript.STATUS_FAILED,
 		"progress": latest_progress.progress if latest_progress != null else 0.0,
 		"message": value.message,
 		"indeterminate": false,
